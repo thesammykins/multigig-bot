@@ -145,9 +145,14 @@ The bot comes with several pre-configured celebration alerts that go to the main
 - **Daily Winners** - Daily performance champions in download, upload, and latency (fires at configured daily hour)
 - **High Latency Award** - Worst latency "awards" (runs every 12 hours)
 - **Packet Loss Alert** - Real-time packet loss detection (only fires when packet loss > 5%)
-- **Waiting and Watching Alert** - Sarcastic bot status updates (every 3 hours)
+- **Waiting and Watching Alert** - Sarcastic bot status updates (chaos scheduled)
 - **Site Download/Upload Milestones** - Individual site achievements
 - **Time Wasted Alert** - Celebrates collective time spent on speed tests
+
+**Example/Demo Alerts** (test mode only):
+- **Example Alert** - Basic webhook connectivity test (`TEST_WEBHOOK=true`)
+- **Chaos Example Alert** - Demonstrates chaos scheduling system
+- **Time Wasted Chaos Example** - Shows how to convert alerts to chaos scheduling
 
 **System Notifications** (sent to `alertwebhookUrl`):
 - Bot startup/shutdown notifications
@@ -158,20 +163,31 @@ The bot comes with several pre-configured celebration alerts that go to the main
 **Test Site Discovery:**
 The bot automatically discovers test sites from your InfluxDB data using `GROUP BY "test_site"` in queries. There's no hardcoded list of sites - when new test sites come online and start reporting data to InfluxDB, they will automatically be included in alerts. No configuration changes needed for new sites.
 
-## Test Mode
+## Test Mode and Example Alerts
 
 The bot includes comprehensive test modes to safely test functionality without spamming your main Discord channels:
 
 ### Available Test Modes
 
-- **TEST_MODE=true**: Redirects all celebration alerts to `alertwebhookUrl` instead of `webhookUrl`
+- **TEST_MODE=true**: Redirects all celebration alerts to `alertwebhookUrl` instead of `webhookUrl`, enables example alerts
 - **TEST_ERROR_LOGGING=true**: Sends test error messages to verify error logging system
-- **TEST_WEBHOOK=true**: Triggers example alert for basic webhook testing
+- **TEST_WEBHOOK=true**: Triggers example alert for basic webhook testing, enables example alerts
+- **NODE_ENV=test**: Test environment mode, enables example alerts
+
+### Example Alerts
+
+The bot includes several example/demonstration alerts that **only fire in test mode**:
+
+- **exampleAlert.js** - Basic webhook connectivity test (requires `TEST_WEBHOOK=true`)
+- **chaosExampleAlert.js** - Demonstrates chaos scheduling with unpredictable timing
+- **timeWastedChaoExample.js** - Shows how to convert regular alerts to chaos scheduling
+
+**Production Safety**: Example alerts automatically detect test mode and will never trigger in production environments. This prevents spam from demonstration alerts.
 
 ### Running Tests
 
 ```bash
-# Test mode only (redirect alerts to alertwebhookUrl)
+# Test mode only (redirect alerts to alertwebhookUrl + enable examples)
 ./docker-build-run.sh test-mode
 
 # Test error logging system
@@ -179,6 +195,9 @@ The bot includes comprehensive test modes to safely test functionality without s
 
 # All test modes enabled
 ./docker-build-run.sh test-all
+
+# Test webhook connectivity specifically
+TEST_WEBHOOK=true npm start
 
 # Or with npm
 npm run docker:test-mode
@@ -193,6 +212,7 @@ TEST_MODE=true npm start
 - All celebration alerts are prefixed with `🧪 **TEST MODE**`
 - Alerts are redirected to the `alertwebhookUrl` channel
 - Bot username gets `[TEST]` prefix
+- Example alerts become active and can fire
 - Clear console indicators show test mode is active
 
 For detailed test mode documentation, see [TEST-MODE.md](TEST-MODE.md).
@@ -209,7 +229,7 @@ Each alert file must export an object with these properties:
 - `condition` (Function): Returns `true` if the alert should be triggered
 - `message` (Function): Returns the string message to be sent to Discord
 
-### Example Custom Alert
+### Example Production Alert
 
 `src/alerts/customAlert.js`:
 ```javascript
@@ -235,6 +255,38 @@ module.exports = {
     });
 
     return message;
+  }
+};
+```
+
+### Example Test-Only Alert
+
+`src/alerts/exampleDemoAlert.js`:
+```javascript
+module.exports = {
+  name: 'Example Demo Alert - Test Only',
+  schedule: 'chaos:15m', // Unpredictable timing
+
+  query: `SELECT COUNT(*) as test_count FROM "speedtest_result" WHERE time > now() - 1h`,
+
+  condition: (results) => {
+    // Test mode check - this alert only fires in test environments
+    const isTestMode =
+      process.env.TEST_MODE === "true" ||
+      process.env.TEST_WEBHOOK === "true" ||
+      process.env.NODE_ENV === "test";
+
+    if (!isTestMode) {
+      return false; // Never trigger in production
+    }
+
+    // Example condition logic
+    return results && results.length > 0;
+  },
+
+  message: (results) => {
+    const testCount = results[0]?.test_count || 0;
+    return `🧪 **Example Demo Alert Triggered**\n\nThis only fires in test mode!\nRecent tests: ${testCount}`;
   }
 };
 ```

@@ -49,12 +49,23 @@ module.exports = {
    * @returns {boolean} - True if we've crossed a new time milestone.
    */
   condition: (results) => {
+    // Only trigger in test mode - this is an example alert for demonstration
+    const isTestMode =
+      process.env.TEST_MODE === "true" ||
+      process.env.TEST_WEBHOOK === "true" ||
+      process.env.NODE_ENV === "test";
+
+    if (!isTestMode) {
+      return false;
+    }
+
     if (!results || results.length === 0) {
       return false;
     }
 
     const result = results[0];
-    const totalSeconds = (result.total_download_time || 0) + (result.total_upload_time || 0);
+    const totalSeconds =
+      (result.total_download_time || 0) + (result.total_upload_time || 0);
     const totalHours = totalSeconds / 3600; // Convert to hours
 
     // Milestones in hours.
@@ -63,7 +74,8 @@ module.exports = {
     // A more robust solution would use a state file, but for now, we'll use a "catch window".
     const catchWindow = 0.5; // 30 minutes
     return milestones.some(
-      (milestone) => totalHours >= milestone && totalHours < milestone + catchWindow
+      (milestone) =>
+        totalHours >= milestone && totalHours < milestone + catchWindow,
     );
   },
 
@@ -90,38 +102,38 @@ module.exports = {
         hours: 8,
         emoji: "⏰",
         title: "The 'Just One More Test' Award",
-        subtitle: "8 Hours of Pure, Unadulterated Speed Testing"
+        subtitle: "8 Hours of Pure, Unadulterated Speed Testing",
       },
       {
         hours: 16,
         emoji: "🕰️",
         title: "The 'I Can Stop Anytime' Trophy",
-        subtitle: "16 Hours Blissfully Lost to the Bandwidth Gods"
+        subtitle: "16 Hours Blissfully Lost to the Bandwidth Gods",
       },
       {
         hours: 24,
         emoji: "📅",
         title: "The 'Lost Day' Commemorative Plate",
-        subtitle: "A Full 24 Hours Sacrificed for Science"
+        subtitle: "A Full 24 Hours Sacrificed for Science",
       },
       {
         hours: 48,
         emoji: "🗓️",
         title: "The 'Weekend Obliterator' Medal",
-        subtitle: "Two Days of Non-Stop Digital Diligence"
+        subtitle: "Two Days of Non-Stop Digital Diligence",
       },
       {
         hours: 72,
         emoji: "⏳",
         title: "The 'Three-Day Bender' Ribbon",
-        subtitle: "72 Hours of Glorious, Unproductive Productivity"
+        subtitle: "72 Hours of Glorious, Unproductive Productivity",
       },
       {
         hours: 168,
         emoji: "🗓️",
         title: "The 'One Week Gone' Perpetual Motion Trophy",
-        subtitle: "A Full Week of Our Lives, For The Data!"
-      }
+        subtitle: "A Full Week of Our Lives, For The Data!",
+      },
     ];
 
     let currentMilestone = null;
@@ -156,10 +168,11 @@ module.exports = {
       `You could have flown from New York to London ${Math.floor(totalHours / 7)} times. Our data has traveled much further.`,
       `That's enough time to binge-watch an entire season of a prestige TV drama. The drama here is our obsession.`,
       `You've now spent more time staring at speed tests than the average person spends choosing a Netflix show.`,
-      `That's ${Math.floor(totalHours * 60)} minutes of your life you'll never get back. But look at the pretty graphs!`
+      `That's ${Math.floor(totalHours * 60)} minutes of your life you'll never get back. But look at the pretty graphs!`,
     ];
 
-    const randomComparison = timeComparisons[Math.floor(Math.random() * timeComparisons.length)];
+    const randomComparison =
+      timeComparisons[Math.floor(Math.random() * timeComparisons.length)];
     message += `🤔 *A Matter of Perspective: ${randomComparison}*\n\n`;
 
     // Motivational, but sarcastic, closing messages enhanced with chaos theme.
@@ -171,15 +184,16 @@ module.exports = {
       "They say time is money. We say time is bandwidth. And chaos makes both more interesting!",
       "Future historians will look back at this and say... 'Wow, they really liked unpredictable speed test milestones.'",
       "You haven't just tested the speed, you've tested the very limits of time itself. And chaos scheduling!",
-      "The chaos gods smiled upon this moment, delivering your milestone at the perfect unpredictable time!"
+      "The chaos gods smiled upon this moment, delivering your milestone at the perfect unpredictable time!",
     ];
 
-    const randomClosing = closingMessages[Math.floor(Math.random() * closingMessages.length)];
+    const randomClosing =
+      closingMessages[Math.floor(Math.random() * closingMessages.length)];
     message += `🎊 **Congratulations on this monumentally chaotic achievement!** 🎊\n`;
     message += `*${randomClosing}*\n\n`;
 
     // Next milestone teaser.
-    const nextMilestone = milestones.find(m => m.hours > totalHours);
+    const nextMilestone = milestones.find((m) => m.hours > totalHours);
     if (nextMilestone) {
       const hoursToGo = nextMilestone.hours - totalHours;
       message += `🎯 *Next up: The "${nextMilestone.title}" in just ${hoursToGo.toFixed(1)} more hours!*\n`;
@@ -189,5 +203,5 @@ module.exports = {
     }
 
     return message;
-  }
+  },
 };

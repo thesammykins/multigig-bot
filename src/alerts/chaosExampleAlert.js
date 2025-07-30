@@ -38,6 +38,16 @@ module.exports = {
    * @returns {boolean} - True if we have any data to report
    */
   condition: (results) => {
+    // Only trigger in test mode - this is an example alert for demonstration
+    const isTestMode =
+      process.env.TEST_MODE === "true" ||
+      process.env.TEST_WEBHOOK === "true" ||
+      process.env.NODE_ENV === "test";
+
+    if (!isTestMode) {
+      return false;
+    }
+
     // Always trigger if we have any data - the chaos scheduling handles the randomness
     // This lets us see exactly when the chaos scheduler decides to fire
     return results && results.length > 0;
@@ -52,7 +62,8 @@ module.exports = {
     const result = results[0] || {};
     const testCount = result.test_count || 0;
     const maxDownload = result.max_download || 0;
-    const maxDownloadMbps = maxDownload > 0 ? ((maxDownload * 8) / 1000000).toFixed(2) : "0";
+    const maxDownloadMbps =
+      maxDownload > 0 ? ((maxDownload * 8) / 1000000).toFixed(2) : "0";
 
     const now = new Date().toLocaleString();
 
@@ -80,10 +91,11 @@ module.exports = {
       "The unpredictable became predictably unpredictable! 🤹",
       "Chaos theory in action: small probabilities, big surprises! 🔬",
       "The schedule said 'maybe' and the universe said 'yes!' 🌌",
-      "This message is brought to you by the beautiful chaos of probability! 🎨"
+      "This message is brought to you by the beautiful chaos of probability! 🎨",
     ];
 
-    const randomChaosMessage = chaosMessages[Math.floor(Math.random() * chaosMessages.length)];
+    const randomChaosMessage =
+      chaosMessages[Math.floor(Math.random() * chaosMessages.length)];
     message += `🎪 **Chaos Commentary:** ${randomChaosMessage}\n\n`;
 
     message += `🔧 **For Alert Developers:**\n`;
@@ -101,5 +113,5 @@ module.exports = {
     message += `*The next chaos strike could be in 20 minutes... or 4 hours. That's the beauty of controlled randomness!* 🎭`;
 
     return message;
-  }
+  },
 };

@@ -49,6 +49,34 @@ module.exports = {
   - `'30s'` or `'1m'` - Critical real-time monitoring
   - `'chaos'` - Status updates, fun alerts that benefit from unpredictability
 
+## Test Mode and Example Alerts
+
+### Test Mode Activation
+Test mode can be activated by setting any of these environment variables:
+- `TEST_MODE=true` - General test mode
+- `TEST_WEBHOOK=true` - Webhook testing mode  
+- `NODE_ENV=test` - Node test environment
+
+### Example Alerts
+The following alerts are **example/demonstration alerts** that only fire in test mode:
+- `exampleAlert.js` - Basic webhook connectivity test
+- `chaosExampleAlert.js` - Chaos scheduling demonstration
+- `timeWastedChaoExample.js` - Example of converting regular alerts to chaos
+
+**Production Safety**: Example alerts automatically check for test mode in their condition functions and will not trigger in production environments.
+
+### Running Example Alerts
+```bash
+# Test webhook connectivity
+TEST_WEBHOOK=true npm start
+
+# Enable all test mode features
+TEST_MODE=true npm start
+
+# Test in development environment
+NODE_ENV=test npm start
+```
+
 ## Alert Properties
 
 ### `name` (String)
@@ -98,7 +126,25 @@ module.exports = {
 ### Creating New Alerts
 
 1. **File Naming**: Use descriptive names (e.g., `diskSpaceAlert.js`, `memoryUsageAlert.js`)
-2. **Schedule Selection**: Choose appropriate schedule based on alert type:
+   - For example/demo alerts, include "Example" in the filename
+   - Production alerts should not contain "Example" or "Test" in their names
+2. **Test Mode Handling**: For example alerts, add test mode checks:
+   ```javascript
+   condition: (results) => {
+     // Only trigger in test mode - this is an example alert
+     const isTestMode =
+       process.env.TEST_MODE === "true" ||
+       process.env.TEST_WEBHOOK === "true" ||
+       process.env.NODE_ENV === "test";
+
+     if (!isTestMode) {
+       return false;
+     }
+
+     // Your normal condition logic here...
+   }
+   ```
+3. **Schedule Selection**: Choose appropriate schedule based on alert type:
    - **Real-time monitoring**: `'1m'`, `'30s'` for immediate detection
    - **Regular checks**: `'5m'`, `'10m'` for standard monitoring
    - **Periodic reports**: `'hourly'`, `'daily'` for summaries
@@ -241,6 +287,7 @@ Consider organizing alerts by system type and schedule:
   - Daily reports should use `'daily'` schedule
   - Critical alerts can use frequent schedules like `'1m'`
   - Balance monitoring needs with notification fatigue
+- **Test Mode Safety**: Always implement test mode checks for example alerts to prevent production noise
 
 ## Schedule Examples by Use Case
 
@@ -326,6 +373,32 @@ module.exports = {
   },
   message: (results) => {
     return 'Surprise! The chaos scheduler struck again! 🎲';
+  }
+};
+```
+
+### Example Alert Template
+```javascript
+module.exports = {
+  name: 'Example Alert - Test Only',
+  schedule: 'chaos:15m',
+  query: 'SELECT COUNT(*) FROM "speedtest_result"',
+  condition: (results) => {
+    // Test mode check for example alerts
+    const isTestMode =
+      process.env.TEST_MODE === "true" ||
+      process.env.TEST_WEBHOOK === "true" ||
+      process.env.NODE_ENV === "test";
+
+    if (!isTestMode) {
+      return false; // Never trigger in production
+    }
+
+    // Example condition logic
+    return results && results.length > 0;
+  },
+  message: (results) => {
+    return '🧪 **Example Alert Triggered** - This only fires in test mode!';
   }
 };
 ```
