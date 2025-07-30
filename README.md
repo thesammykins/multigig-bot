@@ -1,7 +1,5 @@
 # MultiGig Bot - InfluxDB Alerter for Discord
 
-> **Repository Setup Complete** ✅ - This repository has been successfully linked to GitHub and is ready for development!
-
 MultiGig Bot is a lightweight, extensible Node.js application designed to query an InfluxDB database, check for specific conditions, and send notifications to a Discord channel via webhooks. It's built to be easily configurable and allows for the simple creation of new alerts without needing to modify the core application logic.
 
 It was built with the goal of alerting a small group of individuals who are part of the NBN Multigig trial to celebrate milestones and get tiny little discord webhook awards when they were reached, this project is frankly useless to anyone who isn't following the same InfluxDB instance with speedtest data.
