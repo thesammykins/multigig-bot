@@ -1,4 +1,5 @@
 const { InfluxDB } = require("influx");
+const { trackQueryPerformance } = require("../utils/queryOptimizer");
 
 /**
  * Service class for interacting with InfluxDB.
@@ -48,18 +49,41 @@ class InfluxDBService {
   }
 
   /**
-   * Executes an InfluxQL query.
+   * Executes an InfluxQL query with performance tracking.
    * @param {string} query - The InfluxQL query string to execute.
+   * @param {string} alertName - Optional alert name for performance tracking.
    * @returns {Promise<any>} A promise that resolves with the query results.
    */
-  async query(query) {
+  async query(query, alertName = "unknown") {
+    const startTime = Date.now();
+
     try {
       const results = await this.influx.query(query);
+
+      // Track query performance
+      const executionTime = Date.now() - startTime;
+      const resultCount = Array.isArray(results) ? results.length : 0;
+
+      trackQueryPerformance(alertName, "query", executionTime, resultCount);
+
+      // Log slow queries
+      if (executionTime > 2000) {
+        console.warn(
+          `[PERF] Slow query detected for "${alertName}": ${executionTime}ms (${resultCount} results)`,
+        );
+      }
+
       return results;
     } catch (error) {
+      const executionTime = Date.now() - startTime;
+
       console.error(
-        `[ERROR] Failed to execute InfluxDB query. Error: ${error.message}`,
+        `[ERROR] Failed to execute InfluxDB query for "${alertName}" after ${executionTime}ms. Error: ${error.message}`,
       );
+
+      // Track failed queries too
+      trackQueryPerformance(alertName, "failed_query", executionTime, 0);
+
       // Depending on the desired behavior, you might want to handle this more gracefully.
       // For now, we re-throw to let the caller handle it.
       throw error;

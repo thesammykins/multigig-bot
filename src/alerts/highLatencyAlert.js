@@ -10,9 +10,9 @@ module.exports = {
   schedule: "12h",
 
   /**
-   * InfluxQL query to get the maximum (worst) latency and jitter values for each test site over the past day.
+   * InfluxQL query to get the maximum (worst) latency and jitter values for each test site over the past 12 hours.
    */
-  query: `SELECT MAX("ping_latency") AS "max_ping_latency", MAX("download_latency_iqm") AS "max_download_latency", MAX("upload_latency_iqm") AS "max_upload_latency", MAX("ping_jitter") AS "max_ping_jitter" FROM "speedtest_result" WHERE time > now() - 1d GROUP BY "test_site"`,
+  query: `SELECT MAX("ping_latency") AS "max_ping_latency", MAX("download_latency_iqm") AS "max_download_latency", MAX("upload_latency_iqm") AS "max_upload_latency", MAX("ping_jitter") AS "max_ping_jitter" FROM "speedtest_result" WHERE time > now() - 12h GROUP BY "test_site"`,
 
   /**
    * Condition function - always triggers if we have data, because every day deserves a "winner".

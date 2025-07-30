@@ -5,6 +5,7 @@ const path = require("path");
 const InfluxDBService = require("./services/influxdb-http");
 const chaosScheduler = require("./services/chaosScheduler");
 const config = require("../config/config.json");
+const { logPerformanceSummary } = require("./utils/queryOptimizer");
 
 // Enhanced logging system that sends errors to Discord
 let alertWebhookClient; // Declared early for use in logging
@@ -213,6 +214,9 @@ const finalConfig = {
     token: process.env.INFLUXDB_TOKEN || config.influxdb.token,
   },
   cronSchedule: process.env.CRON_SCHEDULE || config.cronSchedule,
+  timezone: process.env.TIMEZONE || config.timezone || "America/New_York",
+  dailyAlertHour:
+    parseInt(process.env.DAILY_ALERT_HOUR) || config.dailyAlertHour || 9,
 };
 
 // Initialize Discord Webhook Clients
@@ -506,6 +510,15 @@ cron.schedule(finalConfig.cronSchedule || "* * * * *", async () => {
 
   let needToSaveLastRuns = false;
 
+  // Log performance summary every 10 minutes (every 2nd run if running every 5 minutes)
+  const now = Date.now();
+  const lastPerfLog = global.lastPerformanceLog || 0;
+  if (now - lastPerfLog > 10 * 60 * 1000) {
+    // 10 minutes
+    logPerformanceSummary();
+    global.lastPerformanceLog = now;
+  }
+
   for (const alert of alerts) {
     try {
       // Check if this alert should run based on its schedule
@@ -533,7 +546,7 @@ cron.schedule(finalConfig.cronSchedule || "* * * * *", async () => {
       // Try to execute the database query, but allow alerts to proceed even if it fails
       let results = null;
       try {
-        results = await influxDBService.query(alert.query);
+        results = await influxDBService.query(alert.query, alert.name);
       } catch (queryError) {
         console.error(
           `[ERROR] Failed to execute InfluxDB query for ${alert.name}:`,

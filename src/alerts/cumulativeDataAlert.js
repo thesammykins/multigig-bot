@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { createCumulativeMilestoneMessage } = require("../utils/discordUtils");
 
 /**
  * CUMULATIVE DATA MILESTONE TRACKING FIX
@@ -38,7 +39,7 @@ function loadCelebratedMilestones() {
     } else {
       console.warn(`[WARN] Failed to load milestone state: ${error.message}`);
     }
-    return { celebratedTB: [] };
+    return { celebratedTB: [], lastCelebrationTime: 0 };
   }
 }
 
@@ -83,11 +84,13 @@ module.exports = {
   /**
    * InfluxQL query to get total cumulative data transferred across all test sites
    * This calculates the sum of all download and upload bytes ever recorded
+   * Note: For true cumulative totals, we need to query all historical data
    */
   query: `SELECT SUM(download_bytes) as total_download_bytes, SUM(upload_bytes) as total_upload_bytes FROM "speedtest_result"`,
 
   /**
    * Condition function - triggers when we cross a new 1TB milestone that hasn't been celebrated yet
+   * Includes rate limiting to prevent spam if multiple checks happen quickly
    * @param {Array} results - Query results from InfluxDB
    * @returns {boolean} - True if we've crossed a new 1TB milestone that hasn't been celebrated
    */
@@ -99,6 +102,7 @@ module.exports = {
     const result = results[0];
     const totalBytes =
       (result.total_download_bytes || 0) + (result.total_upload_bytes || 0);
+
     const totalTB = totalBytes / (1024 * 1024 * 1024 * 1024); // Convert to TB
 
     // Check if we've crossed any 1TB milestone
@@ -111,6 +115,19 @@ module.exports = {
 
     // Load celebrated milestones
     const milestoneState = loadCelebratedMilestones();
+
+    // Rate limiting: Check if we celebrated any milestone in the last 10 minutes
+    const now = Date.now();
+    const lastCelebrationTime = milestoneState.lastCelebrationTime || 0;
+    const timeSinceLastCelebration = now - lastCelebrationTime;
+    const minTimeBetweenCelebrations = 10 * 60 * 1000; // 10 minutes
+
+    if (timeSinceLastCelebration < minTimeBetweenCelebrations) {
+      console.log(
+        `[DEBUG] Rate limit: Last celebration was ${Math.round(timeSinceLastCelebration / 1000)}s ago, waiting ${Math.round((minTimeBetweenCelebrations - timeSinceLastCelebration) / 1000)}s more`,
+      );
+      return false;
+    }
 
     // Check if this milestone has already been celebrated
     const alreadyCelebrated =
@@ -128,9 +145,10 @@ module.exports = {
       `[INFO] New milestone detected: ${currentMilestone}TB (total: ${totalTB.toFixed(2)}TB)`,
     );
 
-    // Mark this milestone as celebrated
+    // Mark this milestone as celebrated and update rate limiting timestamp
     milestoneState.celebratedTB.push(currentMilestone);
     milestoneState.celebratedTB.sort((a, b) => a - b); // Keep sorted
+    milestoneState.lastCelebrationTime = now;
     saveCelebratedMilestones(milestoneState);
 
     return true;
@@ -145,6 +163,7 @@ module.exports = {
     const result = results[0];
     const downloadBytes = result.total_download_bytes || 0;
     const uploadBytes = result.total_upload_bytes || 0;
+
     const totalBytes = downloadBytes + uploadBytes;
 
     const downloadTB = downloadBytes / (1024 * 1024 * 1024 * 1024);
@@ -153,62 +172,30 @@ module.exports = {
 
     const currentMilestone = Math.floor(totalTB);
 
-    let message = `🎉 **MILESTONE ACHIEVED!** 🎉\n\n`;
-    message += `🏆 **WE'VE CROSSED ${currentMilestone}TB OF TOTAL DATA!** 🏆\n\n`;
-
-    message += `📊 **Current Stats:**\n`;
-    message += `📥 **Total Downloaded:** ${downloadTB.toFixed(2)} TB\n`;
-    message += `📤 **Total Uploaded:** ${uploadTB.toFixed(2)} TB\n`;
-    message += `📈 **Grand Total:** ${totalTB.toFixed(2)} TB\n\n`;
-
     // Fun milestone messages - cycle through them based on milestone number
     const milestoneMessages = [
-      "That's enough data to stream 4K Netflix for over 150 hours straight. Hope you've got snacks! 🍿",
-      "You could download Call of Duty: Modern Warfare (the big one) about 5 times with this. Why? Don't ask. 🎮",
-      "This is more data than the Hubble Space Telescope sends back in a decade. We're basically astronomers now. 🔭",
-      "We've officially used more bandwidth than a small, developing nation. We should send them a postcard. 🌍",
-      "That's enough data to store the entire Library of Congress... if it were all text files. Which it isn't. But still! 📚",
-      "If this data were a stack of floppy disks, it would reach the moon. And probably burn up on re-entry. 💾",
-      "This milestone is brought to you by caffeine, poor impulse control, and the sheer love of watching numbers go up. ☕",
-      "You could store about 35,000 high-quality albums in FLAC format. Your ears would thank you. 🎵",
-      "That's enough bandwidth to make our ISP's CEO sweat nervously during shareholder meetings. Keep it up. 👀",
-      "We've now transferred enough data to fill up your phone's storage about 8,000 times. Time to delete some photos. 📸",
-      "This is the digital equivalent of paving a highway to the internet's front door. Honk honk! 🚗",
-      "If you printed this data on paper, you could deforest the entire Amazon. Good thing we're digital! 🌲",
-      "That's enough data to livestream your pet rock's life in 8K for a month. It would be a very boring, very high-res stream. 🪨",
-      "We've moved more data than all of the world's commercial flights generate in a day. We're flying high! ✈️",
-      "Congratulations, you've successfully backed up the internet. Well, the good parts. Like, three cat videos and a recipe blog. 🐈",
+      "That's enough data to stream 4K Netflix for over 150 hours straight.",
+      "You could download Call of Duty: Modern Warfare about 5 times with this.",
+      "This is more data than the Hubble Space Telescope sends back in a decade.",
+      "We've used more bandwidth than a small, developing nation.",
+      "That's enough data to store the entire Library of Congress in text files.",
+      "If this data were floppy disks, it would reach the moon.",
+      "This milestone is brought to you by caffeine and progress bar addiction.",
+      "You could store about 35,000 high-quality albums in FLAC format.",
+      "That's enough bandwidth to make ISP CEOs sweat during meetings.",
+      "We've transferred enough data to fill 8,000 phone storages.",
+      "This is like paving a digital highway to the internet's front door.",
+      "If you printed this data on paper, you could deforest the Amazon.",
+      "That's enough data to livestream your pet rock in 8K for a month.",
+      "We've moved more data than all commercial flights generate daily.",
+      "You've successfully backed up the internet's good parts.",
     ];
 
-    const messageIndex = (currentMilestone - 1) % milestoneMessages.length;
-    const randomMessage = milestoneMessages[messageIndex];
-    message += `💡 *${randomMessage}*\n\n`;
-
-    // Add special messages for major milestones
-    if (currentMilestone === 1) {
-      message += `🎊 **FIRST TERABYTE CELEBRATION!** 🎊\n`;
-      message += `*This is where legends are born! Welcome to the TB club!* 🌟\n\n`;
-    } else if (currentMilestone === 5) {
-      message += `🔥 **QUINTUPLE THREAT!** 🔥\n`;
-      message += `*5TB down, infinity to go! You're officially addicted to data!* 🚀\n\n`;
-    } else if (currentMilestone === 10) {
-      message += `💯 **DOUBLE DIGITS BABY!** 💯\n`;
-      message += `*10TB! At this point, you should probably start charging rent to your data!* 🏠\n\n`;
-    } else if (currentMilestone % 10 === 0) {
-      message += `🎯 **${currentMilestone}TB MEGA MILESTONE!** 🎯\n`;
-      message += `*Round numbers deserve extra celebration! You're in the data hall of fame!* 👑\n\n`;
-    }
-
-    message += `🎊 **Congratulations to the entire MultiGig team!** 🎊\n`;
-    message += `*Keep pushing those bytes! Next milestone: ${currentMilestone + 1}TB!* 💪\n\n`;
-
-    // Show current milestone progress
-    const nextMilestone = currentMilestone + 1;
-    const progressTB = totalTB - currentMilestone;
-    const progressPercent = (progressTB * 100).toFixed(1);
-
-    message += `📈 **Progress to ${nextMilestone}TB:** ${progressTB.toFixed(2)}TB (${progressPercent}%)`;
-
-    return message;
+    // Use utility to create a properly sized message
+    return createCumulativeMilestoneMessage(
+      currentMilestone,
+      { downloadTB, uploadTB, totalTB },
+      milestoneMessages,
+    );
   },
 };

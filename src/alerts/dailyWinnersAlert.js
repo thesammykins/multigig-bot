@@ -1,3 +1,5 @@
+const { createDailyWinnersMessage } = require("../utils/discordUtils");
+
 module.exports = {
   /**
    * Daily Performance Winners - Celebrates the daily champions in download, upload, and lowest latency!
@@ -56,37 +58,7 @@ module.exports = {
       }
     });
 
-    let message = `🏆 **DAILY PERFORMANCE CHAMPIONS** 🏆\n`;
-    message += `*Celebrating today's networking superstars!*\n\n`;
-
-    // Download Champion
-    if (downloadChampion.site && downloadChampion.speed > 0) {
-      const downloadMbps = ((downloadChampion.speed * 8) / 1000000).toFixed(2);
-      message += `📥 **Download Speed Champion** 🥇\n`;
-      message += `**${downloadChampion.site.toUpperCase()}** achieved a blazing **${downloadMbps} Mbps**!\n`;
-      message += `*Downloading at the speed of light!* ⚡\n\n`;
-    }
-
-    // Upload Champion
-    if (uploadChampion.site && uploadChampion.speed > 0) {
-      const uploadMbps = ((uploadChampion.speed * 8) / 1000000).toFixed(2);
-      message += `📤 **Upload Speed Champion** 🥇\n`;
-      message += `**${uploadChampion.site.toUpperCase()}** pushed **${uploadMbps} Mbps** upstream!\n`;
-      message += `*Sending data to the stratosphere!* 🚀\n\n`;
-    }
-
-    // Latency Champion (lowest is best)
-    if (latencyChampion.site && latencyChampion.latency < Infinity) {
-      message += `⚡ **Lowest Latency Champion** 🥇\n`;
-      message += `**${latencyChampion.site.toUpperCase()}** achieved lightning-fast **${latencyChampion.latency.toFixed(2)}ms** ping!\n`;
-      message += `*Faster than a speeding photon!* 💨\n\n`;
-    }
-
-    // Full performance leaderboard
-    message += `📊 **Complete Daily Performance Board:**\n\n`;
-
-    // Download leaderboard
-    message += `📥 **Download Speeds (Mbps):**\n`;
+    // Prepare leaderboard data
     const downloadSorted = results
       .map((r) => ({
         site: r.test_site || "Unknown",
@@ -94,13 +66,6 @@ module.exports = {
       }))
       .sort((a, b) => b.speed - a.speed);
 
-    downloadSorted.forEach((entry, index) => {
-      const medal =
-        index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🔸";
-      message += `${medal} **${entry.site.toUpperCase()}**: ${entry.speed.toFixed(2)} Mbps\n`;
-    });
-
-    message += `\n📤 **Upload Speeds (Mbps):**\n`;
     const uploadSorted = results
       .map((r) => ({
         site: r.test_site || "Unknown",
@@ -108,13 +73,6 @@ module.exports = {
       }))
       .sort((a, b) => b.speed - a.speed);
 
-    uploadSorted.forEach((entry, index) => {
-      const medal =
-        index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🔸";
-      message += `${medal} **${entry.site.toUpperCase()}**: ${entry.speed.toFixed(2)} Mbps\n`;
-    });
-
-    message += `\n⚡ **Lowest Latency (ms):**\n`;
     const latencySorted = results
       .map((r) => ({
         site: r.test_site || "Unknown",
@@ -123,30 +81,23 @@ module.exports = {
       .filter((r) => r.latency < 999)
       .sort((a, b) => a.latency - b.latency);
 
-    latencySorted.forEach((entry, index) => {
-      const medal =
-        index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🔸";
-      message += `${medal} **${entry.site.toUpperCase()}**: ${entry.latency.toFixed(2)}ms\n`;
-    });
-
     // Fun closing messages
     const closingMessages = [
       "May your pings be low and your bandwidth high. Always. 🙏",
-      "Another day, another gigabit in the dust. Keep it up, champs. 💪",
-      "You're not just testing speeds, you're making the internet a better place. Probably. 🌍",
-      "These numbers are so good, your ISP is probably crying tears of joy. Or terror. 😭",
-      "In the grand game of thrones, you are the kings and queens of bandwidth. 👑",
-      "Some people chase dreams, you chase gigabits. And you're winning. 🏃‍♂️",
-      "If speed was a crime, you'd all be serving life sentences. Keep breaking the law. 🚔",
-      "Your routers are the real MVPs. Give them a little pat on the plastic. ❤️",
+      "Another day, another gigabit conquered. Keep it up, champs. 💪",
+      "You're making the internet a better place. Probably. 🌍",
+      "These numbers are so good, your ISP is crying tears of joy. 😭",
+      "You are the kings and queens of bandwidth. 👑",
+      "Some chase dreams, you chase gigabits. And you're winning. 🏃‍♂️",
+      "If speed was a crime, you'd all be serving life sentences. 🚔",
+      "Your routers are the real MVPs. Give them a pat. ❤️",
     ];
 
-    const randomClosing =
-      closingMessages[Math.floor(Math.random() * closingMessages.length)];
-    message += `\n🎊 **Congratulations to all our speed warriors!** 🎊\n`;
-    message += `*${randomClosing}*\n\n`;
-    message += `🎯 *Ready for tomorrow's challenges? The internet awaits!* 🌐`;
-
-    return message;
+    // Use utility to create a properly sized message
+    return createDailyWinnersMessage(
+      { downloadChampion, uploadChampion, latencyChampion },
+      { downloadSorted, uploadSorted, latencySorted },
+      closingMessages,
+    );
   },
 };

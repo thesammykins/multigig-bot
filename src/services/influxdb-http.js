@@ -1,4 +1,5 @@
-const axios = require('axios');
+const axios = require("axios");
+const { trackQueryPerformance } = require("../utils/queryOptimizer");
 
 /**
  * HTTP-based InfluxDB service that uses direct REST API calls
@@ -19,7 +20,7 @@ class InfluxDBHTTPService {
   constructor(config) {
     if (!config || !config.host || !config.database) {
       throw new Error(
-        '[ERROR] InfluxDB configuration is missing required fields (host, database).'
+        "[ERROR] InfluxDB configuration is missing required fields (host, database).",
       );
     }
 
@@ -29,35 +30,41 @@ class InfluxDBHTTPService {
     // Set up authentication
     this.authParams = {};
     this.authHeaders = {
-      'Accept': 'application/json'
+      Accept: "application/json",
     };
 
     if (config.token) {
-      console.log('[INFO] Using token authentication for InfluxDB HTTP service');
-      this.authParams.u = 'token';
+      console.log(
+        "[INFO] Using token authentication for InfluxDB HTTP service",
+      );
+      this.authParams.u = "token";
       this.authParams.p = config.token;
     } else if (config.username && config.password) {
-      console.log('[INFO] Using username/password authentication for InfluxDB HTTP service');
+      console.log(
+        "[INFO] Using username/password authentication for InfluxDB HTTP service",
+      );
       this.authParams.u = config.username;
       this.authParams.p = config.password;
     } else {
-      console.log('[INFO] Using no authentication for InfluxDB HTTP service');
+      console.log("[INFO] Using no authentication for InfluxDB HTTP service");
     }
   }
 
   /**
-   * Executes an InfluxQL query using HTTP REST API.
+   * Executes an InfluxQL query using HTTP REST API with performance tracking.
    * @param {string} query - The InfluxQL query string to execute.
+   * @param {string} alertName - Optional alert name for performance tracking.
    * @returns {Promise<any>} A promise that resolves with the query results.
    */
-  async query(query) {
+  async query(query, alertName = "unknown") {
+    const startTime = Date.now();
     try {
       const url = `${this.baseURL}/query`;
 
       const params = {
         db: this.config.database,
         q: query,
-        ...this.authParams
+        ...this.authParams,
       };
 
       console.log(`[DEBUG] Executing HTTP query: ${query}`);
@@ -65,16 +72,30 @@ class InfluxDBHTTPService {
       const response = await axios.get(url, {
         params: params,
         headers: this.authHeaders,
-        timeout: 30000 // 30 second timeout
+        timeout: 30000, // 30 second timeout
       });
 
       // Parse InfluxDB response format
       const results = this.parseInfluxDBResponse(response.data);
 
+      // Track query performance
+      const executionTime = Date.now() - startTime;
+      const resultCount = Array.isArray(results) ? results.length : 0;
+
+      trackQueryPerformance(alertName, "query", executionTime, resultCount);
+
+      // Log slow queries
+      if (executionTime > 2000) {
+        console.warn(
+          `[PERF] Slow query detected for "${alertName}": ${executionTime}ms (${resultCount} results)`,
+        );
+      }
+
       console.log(`[DEBUG] Query returned ${results.length} results`);
       return results;
-
     } catch (error) {
+      const executionTime = Date.now() - startTime;
+
       if (error.response) {
         // Server responded with error status
         const errorMsg = `HTTP ${error.response.status} ${error.response.statusText}`;
@@ -87,7 +108,9 @@ class InfluxDBHTTPService {
         throw new Error(`InfluxDB query failed: ${errorMsg}`);
       } else if (error.request) {
         // Request was made but no response received
-        console.error(`[ERROR] No response from InfluxDB server: ${error.message}`);
+        console.error(
+          `[ERROR] No response from InfluxDB server: ${error.message}`,
+        );
         throw new Error(`InfluxDB connection failed: ${error.message}`);
       } else {
         // Something else happened
@@ -129,7 +152,7 @@ class InfluxDBHTTPService {
           const record = {};
 
           // Add time field
-          if (columns[0] === 'time' && valueRow[0]) {
+          if (columns[0] === "time" && valueRow[0]) {
             record.time = new Date(valueRow[0]);
           }
 
@@ -158,7 +181,9 @@ class InfluxDBHTTPService {
       }
     }
 
-    console.log(`[DEBUG] Parsed ${results.length} records from InfluxDB response`);
+    console.log(
+      `[DEBUG] Parsed ${results.length} records from InfluxDB response`,
+    );
     return results;
   }
 
@@ -182,8 +207,8 @@ class InfluxDBHTTPService {
    */
   async getMeasurements() {
     try {
-      const results = await this.query('SHOW MEASUREMENTS');
-      return results.map(r => r.name).filter(Boolean);
+      const results = await this.query("SHOW MEASUREMENTS");
+      return results.map((r) => r.name).filter(Boolean);
     } catch (error) {
       console.error(`[ERROR] Failed to get measurements: ${error.message}`);
       return [];
@@ -200,7 +225,9 @@ class InfluxDBHTTPService {
       const results = await this.query(`SHOW FIELD KEYS FROM "${measurement}"`);
       return results;
     } catch (error) {
-      console.error(`[ERROR] Failed to get fields for ${measurement}: ${error.message}`);
+      console.error(
+        `[ERROR] Failed to get fields for ${measurement}: ${error.message}`,
+      );
       return [];
     }
   }
@@ -213,9 +240,11 @@ class InfluxDBHTTPService {
   async getTags(measurement) {
     try {
       const results = await this.query(`SHOW TAG KEYS FROM "${measurement}"`);
-      return results.map(r => r.tagKey).filter(Boolean);
+      return results.map((r) => r.tagKey).filter(Boolean);
     } catch (error) {
-      console.error(`[ERROR] Failed to get tags for ${measurement}: ${error.message}`);
+      console.error(
+        `[ERROR] Failed to get tags for ${measurement}: ${error.message}`,
+      );
       return [];
     }
   }
