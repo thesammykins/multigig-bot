@@ -94,9 +94,9 @@ module.exports = {
     }
 
     const result = results[0];
-    const totalSeconds =
+    const totalMilliseconds =
       (result.total_download_time || 0) + (result.total_upload_time || 0);
-    const totalHours = totalSeconds / 3600; // Convert to hours
+    const totalHours = totalMilliseconds / 3600000; // Convert milliseconds to hours
 
     // Milestones in hours with identifiers
     const milestones = [
@@ -158,11 +158,11 @@ module.exports = {
    */
   message: (results) => {
     const result = results[0];
-    const downloadSeconds = result.total_download_time || 0;
-    const uploadSeconds = result.total_upload_time || 0;
-    const totalSeconds = downloadSeconds + uploadSeconds;
+    const downloadMilliseconds = result.total_download_time || 0;
+    const uploadMilliseconds = result.total_upload_time || 0;
+    const totalMilliseconds = downloadMilliseconds + uploadMilliseconds;
 
-    const totalHours = totalSeconds / 3600;
+    const totalHours = totalMilliseconds / 3600000; // Convert milliseconds to hours
     const totalDays = totalHours / 24;
 
     // Determine which milestone we just hit.
@@ -272,8 +272,8 @@ module.exports = {
     return createTimeMilestoneMessage(
       currentMilestone,
       {
-        downloadHours: downloadSeconds / 3600,
-        uploadHours: uploadSeconds / 3600,
+        downloadHours: downloadMilliseconds / 3600000, // Convert milliseconds to hours
+        uploadHours: uploadMilliseconds / 3600000, // Convert milliseconds to hours
         totalHours,
         totalDays,
       },
