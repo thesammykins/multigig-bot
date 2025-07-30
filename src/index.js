@@ -3,6 +3,7 @@ const cron = require("node-cron");
 const fs = require("fs");
 const path = require("path");
 const InfluxDBService = require("./services/influxdb-http");
+const chaosScheduler = require("./services/chaosScheduler");
 const config = require("../config/config.json");
 
 // Enhanced logging system that sends errors to Discord
@@ -297,6 +298,11 @@ function saveLastRuns(lastRuns) {
 function parseSchedule(schedule) {
   if (!schedule) return 60000; // Default to 1 minute
 
+  // Special handling for chaos scheduling
+  if (chaosScheduler.isChaosSchedule(schedule)) {
+    return "CHAOS_BASED";
+  }
+
   // Special handling for daily - return marker for time-based scheduling
   if (schedule === "daily") return "TIME_BASED_DAILY";
 
@@ -357,6 +363,17 @@ function isCurrentlyDailyAlertHour(timezone, targetHour) {
 function shouldRunAlert(alert, lastRuns, config) {
   const alertName = alert.name;
   const scheduleResult = parseSchedule(alert.schedule);
+
+  // Handle chaos-based scheduling
+  if (scheduleResult === "CHAOS_BASED") {
+    // For chaos scheduling, we need to check if it's time for the check interval
+    const checkInterval = chaosScheduler.getChaosCheckInterval(alert.schedule);
+    const now = Date.now();
+    const lastRun = lastRuns[alertName] || 0;
+
+    // Only proceed if it's time for a chaos check
+    return now - lastRun >= checkInterval;
+  }
 
   // Handle time-based daily alerts
   if (scheduleResult === "TIME_BASED_DAILY") {
@@ -545,7 +562,24 @@ cron.schedule(finalConfig.cronSchedule || "* * * * *", async () => {
 
       // The condition function determines if a notification should be sent
       // It receives the results (which may be null if database query failed)
-      if (alert.condition(results)) {
+
+      // Handle chaos scheduling - wrap condition with chaos probability check
+      let shouldTrigger = false;
+      if (parseSchedule(alert.schedule) === "CHAOS_BASED") {
+        // For chaos scheduling, check probability first, then original condition
+        if (chaosScheduler.shouldChaosAlertRun(alert.name)) {
+          shouldTrigger = alert.condition(results);
+          if (shouldTrigger) {
+            // Record that chaos alert executed
+            chaosScheduler.recordChaosExecution(alert.name);
+          }
+        }
+      } else {
+        // Normal scheduling - just run the condition
+        shouldTrigger = alert.condition(results);
+      }
+
+      if (shouldTrigger) {
         const message = alert.message(results);
         console.log(
           `[INFO] Condition met for ${alert.name}. Sending notification.`,

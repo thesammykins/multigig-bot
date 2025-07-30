@@ -5,9 +5,10 @@ module.exports = {
   name: "Digital Sentinel Status Report",
 
   /**
-   * Schedule: Run every 3 hours because vigilance never sleeps (but it does take coffee breaks).
+   * Schedule: Chaos mode - unpredictable timing between 1-4 hours with increasing probability.
+   * Checks every 30 minutes but fires randomly based on time elapsed since last execution.
    */
-  schedule: "3h",
+  schedule: "chaos:30m",
 
   /**
    * Simple query to check if we have any recent data to watch over.
@@ -31,7 +32,8 @@ module.exports = {
    * @returns {string} - A randomly selected sarcastic message about watching and waiting.
    */
   message: (results) => {
-    const testCount = results && results.length > 0 ? (results[0].test_count || 0) : 0;
+    const testCount =
+      results && results.length > 0 ? results[0].test_count || 0 : 0;
     const hasRecentData = testCount > 0;
 
     // The grand collection of sarcastic monitoring messages
@@ -76,7 +78,7 @@ module.exports = {
       "🔮 Fortune telling service: I predict you will run another speed test within the hour.",
       "🎨 Creating modern art with network graphs. It's called 'Despair in B-flat Minor.'",
       "🏰 Medieval siege warfare tactics applied to packet monitoring. Catapults not included.",
-      "🎪 Three-ring circus of monitoring: Ring 1 is latency, Ring 2 is bandwidth, Ring 3 is my sanity."
+      "🎪 Three-ring circus of monitoring: Ring 1 is latency, Ring 2 is bandwidth, Ring 3 is my sanity.",
     ];
 
     // Add data-aware variations
@@ -85,19 +87,20 @@ module.exports = {
         `📈 Observed ${testCount} speed tests in the last 3 hours. You have a problem. I'm here for it.`,
         `🎯 ${testCount} fresh data points to analyze. My circuits are practically buzzing with excitement.`,
         `📊 ${testCount} tests later, and I'm still here, still counting, still mildly concerned about your priorities.`,
-        `⚡ ${testCount} speed tests witnessed. At this rate, you'll achieve digital enlightenment by Thursday.`
+        `⚡ ${testCount} speed tests witnessed. At this rate, you'll achieve digital enlightenment by Thursday.`,
       );
     } else {
       watchingMessages.push(
         "📭 No recent tests detected. Either everything's perfect or you've finally found inner peace. Doubtful on both counts.",
         "🌙 Radio silence from the speed test front. I'll just sit here and contemplate the meaning of bandwidth.",
         "🤔 No data to monitor. This is either heaven or a system failure. Investigating...",
-        "⚡ The network is suspiciously quiet. I don't trust it. Something's brewing in the packet realm."
+        "⚡ The network is suspiciously quiet. I don't trust it. Something's brewing in the packet realm.",
       );
     }
 
     // Randomly select a message
-    const randomMessage = watchingMessages[Math.floor(Math.random() * watchingMessages.length)];
+    const randomMessage =
+      watchingMessages[Math.floor(Math.random() * watchingMessages.length)];
 
     let message = `🔍 **DIGITAL SENTINEL STATUS REPORT** 🔍\n\n`;
     message += `${randomMessage}\n\n`;
@@ -121,12 +124,13 @@ module.exports = {
       "Maintaining digital vigilance with a healthy dose of sarcasm since... whenever I started. 🤖",
       "Remember: I never sleep, never blink, and never stop judging your bandwidth choices. 👁️",
       "Standing by for the next network crisis, minor hiccup, or Tuesday. Whichever comes first. ⚡",
-      "This message will self-destruct in 3 hours when I send the next one. The cycle continues. 🔄"
+      "This message will self-destruct in 3 hours when I send the next one. The cycle continues. 🔄",
     ];
 
-    const randomClosing = closingMessages[Math.floor(Math.random() * closingMessages.length)];
+    const randomClosing =
+      closingMessages[Math.floor(Math.random() * closingMessages.length)];
     message += `*${randomClosing}*`;
 
     return message;
-  }
+  },
 };

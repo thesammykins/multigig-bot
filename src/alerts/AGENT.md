@@ -29,20 +29,25 @@ module.exports = {
   - **Predefined**: `'daily'`, `'hourly'`, `'weekly'`, `'minute'`
   - **Time intervals**: `'5m'`, `'30s'`, `'2h'`, `'1d'`
     - `s` = seconds, `m` = minutes, `h` = hours, `d` = days
+  - **Chaos scheduling**: `'chaos'`, `'chaos:15m'`, `'chaos:5m'`
+    - Unpredictable timing with probability-based execution
 - **Examples**:
   ```javascript
-  schedule: 'daily',    // Once per day
-  schedule: 'hourly',   // Once per hour
-  schedule: '5m',       // Every 5 minutes
-  schedule: '30s',      // Every 30 seconds
-  schedule: '2h',       // Every 2 hours
-  schedule: '1d',       // Every 1 day
+  schedule: 'daily',      // Once per day
+  schedule: 'hourly',     // Once per hour
+  schedule: '5m',         // Every 5 minutes
+  schedule: '30s',        // Every 30 seconds
+  schedule: '2h',         // Every 2 hours
+  schedule: '1d',         // Every 1 day
+  schedule: 'chaos',      // Unpredictable (default 15m checks)
+  schedule: 'chaos:10m',  // Unpredictable with 10m check frequency
   ```
 - **Use Cases**:
   - `'daily'` - Perfect for summary reports, awards, daily digests
   - `'hourly'` - Good for trend analysis, periodic checks
   - `'5m'` or `'10m'` - Standard monitoring alerts
   - `'30s'` or `'1m'` - Critical real-time monitoring
+  - `'chaos'` - Status updates, fun alerts that benefit from unpredictability
 
 ## Alert Properties
 
@@ -266,5 +271,61 @@ module.exports = {
   name: 'Custom Check',
   schedule: '2h', // Every 2 hours
   // ... rest of alert
+};
+
+// Chaos scheduling - unpredictable timing
+module.exports = {
+  name: 'Random Status Update',
+  schedule: 'chaos', // Default unpredictable (15m checks)
+  // ... rest of alert
+};
+
+// Chaos with custom check frequency
+module.exports = {
+  name: 'Chaotic Network Watcher',
+  schedule: 'chaos:30m', // Unpredictable with 30m checks
+  // ... rest of alert
+};
+```
+
+## Chaos Scheduling
+
+Chaos scheduling introduces controlled unpredictability to alert timing, perfect for status updates, fun alerts, or breaking predictable patterns.
+
+### How It Works
+- **Check Frequency**: Configurable interval for probability checks (default: 15 minutes)
+- **Base Probability**: 5% chance to fire on each check
+- **Time Multiplier**: Probability increases over time since last execution
+- **Maximum Multiplier**: 3x after 3 hours (15% max chance)
+- **Result**: Unpredictable timing averaging 1-4 hours between executions
+
+### Chaos Schedule Options
+```javascript
+schedule: 'chaos',        // Default: 15m checks, 5-15% probability
+schedule: 'chaos:5m',     // High frequency: 5m checks (more chaos)
+schedule: 'chaos:30m',    // Low frequency: 30m checks (less chaos)
+schedule: 'chaos:1h',     // Hourly checks (very unpredictable)
+```
+
+### Chaos Scheduling Best Practices
+- **Perfect for**: Status updates, fun alerts, breaking monotony
+- **Avoid for**: Critical alerts, time-sensitive notifications
+- **State tracking**: Automatically handles persistent state across restarts
+- **No code changes**: Works with existing condition/message functions
+- **Debugging**: Check logs for chaos probability calculations
+
+### Chaos Implementation Example
+```javascript
+module.exports = {
+  name: 'Digital Sentinel Status',
+  schedule: 'chaos:30m', // Check every 30 minutes, fire randomly
+  query: 'SELECT COUNT(*) FROM "speedtest_result"',
+  condition: (results) => {
+    // Normal condition logic - chaos probability handled automatically
+    return true; // Always trigger when chaos scheduler decides to fire
+  },
+  message: (results) => {
+    return 'Surprise! The chaos scheduler struck again! 🎲';
+  }
 };
 ```
