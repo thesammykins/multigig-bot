@@ -531,12 +531,27 @@ cron.schedule(finalConfig.cronSchedule || "* * * * *", async () => {
           console.log(
             `[INFO] Skipping ${alert.name} - daily alert scheduled for ${dailyAlertHour}:00 ${timezone}`,
           );
+        } else if (scheduleResult === "CHAOS_BASED") {
+          const checkInterval = chaosScheduler.getChaosCheckInterval(
+            alert.schedule,
+          );
+          const lastRun = lastRuns[alert.name] || 0;
+          const nextCheck = new Date(lastRun + checkInterval);
+          console.log(
+            `[INFO] Skipping ${alert.name} - next chaos check scheduled for ${nextCheck.toLocaleString()}`,
+          );
         } else {
           const lastRun = lastRuns[alert.name] || 0;
-          const nextRun = new Date(lastRun + scheduleResult);
-          console.log(
-            `[INFO] Skipping ${alert.name} - next run scheduled for ${nextRun.toLocaleString()}`,
-          );
+          if (lastRun === 0) {
+            console.log(
+              `[INFO] Skipping ${alert.name} - never run before, will run on next cycle`,
+            );
+          } else {
+            const nextRun = new Date(lastRun + scheduleResult);
+            console.log(
+              `[INFO] Skipping ${alert.name} - next run scheduled for ${nextRun.toLocaleString()}`,
+            );
+          }
         }
         continue;
       }
