@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  multigig-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: multigig-bot:latest
+    container_name: multigig-bot-container
+    restart: unless-stopped
+
+    # Environment variables (uncomment and set these for production)
+    # environment:
+    #   - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    #   - DISCORD_ALERT_WEBHOOK_URL=${DISCORD_ALERT_WEBHOOK_URL}
+    #   - DISCORD_BOT_USERNAME=${DISCORD_BOT_USERNAME}
+    #   - DISCORD_BOT_AVATAR_URL=${DISCORD_BOT_AVATAR_URL}
+    #   - INFLUXDB_HOST=${INFLUXDB_HOST}
+    #   - INFLUXDB_PORT=${INFLUXDB_PORT}
+    #   - INFLUXDB_PROTOCOL=${INFLUXDB_PROTOCOL}
+    #   - INFLUXDB_DATABASE=${INFLUXDB_DATABASE}
+    #   - INFLUXDB_USERNAME=${INFLUXDB_USERNAME}
+    #   - INFLUXDB_PASSWORD=${INFLUXDB_PASSWORD}
+    #   - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+    #   - CRON_SCHEDULE=${CRON_SCHEDULE}
+    #   # Test mode options (uncomment for testing)
+    #   # - TEST_MODE=true                    # Redirect alerts to alertwebhookUrl
+    #   # - TEST_ERROR_LOGGING=true           # Enable error logging tests
+    #   # - TEST_WEBHOOK=true                 # Enable webhook test alert
+
+    # Volume mounts (comment out if using environment variables above)
+    volumes:
+      - ./config:/usr/src/app/config:ro
+      - multigig-data:/tmp
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+
+# Volume for persistent data
+volumes:
+  multigig-data:
+    driver: local
+
+# Networks (optional - for connecting to other services)
+networks:
+  default:
+    name: multigig-network
+    driver: bridge

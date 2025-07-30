@@ -1,0 +1,32 @@
+{
+  "name": "multigig-bot",
+  "version": "1.0.0",
+  "description": "A Discord bot for sending alerts from InfluxDB.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docker:build": "./docker-build-run.sh build",
+    "docker:run": "./docker-build-run.sh run",
+    "docker:rebuild": "./docker-build-run.sh rebuild",
+    "docker:stop": "./docker-build-run.sh stop",
+    "docker:logs": "./docker-build-run.sh logs",
+    "docker:status": "./docker-build-run.sh status",
+    "docker:cleanup": "./docker-build-run.sh cleanup",
+    "docker:test-errors": "./docker-build-run.sh test-errors",
+    "docker:test-mode": "./docker-build-run.sh test-mode",
+    "docker:test-all": "./docker-build-run.sh test-all",
+    "compose:up": "docker-compose up -d",
+    "compose:down": "docker-compose down",
+    "compose:logs": "docker-compose logs -f"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "discord.js": "^14.0.0",
+    "influx": "^5.9.3",
+    "node-cron": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.6.0"
+  }
+}

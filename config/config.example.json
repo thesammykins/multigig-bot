@@ -1,0 +1,23 @@
+{
+  "discord": {
+    "webhookUrl": "https://discord.com/api/webhooks/YOUR_CELEBRATION_WEBHOOK_ID/YOUR_CELEBRATION_WEBHOOK_TOKEN",
+    "alertwebhookUrl": "https://discord.com/api/webhooks/YOUR_SYSTEM_ALERT_WEBHOOK_ID/YOUR_SYSTEM_ALERT_WEBHOOK_TOKEN",
+    "botUsername": "MultiGig Achievements",
+    "botAvatarUrl": ""
+  },
+  "influxdb": {
+    "host": "your-influxdb-host.com",
+    "port": 443,
+    "protocol": "https",
+    "database": "your-database-name",
+    "username": "",
+    "password": "",
+    "token": "your-influxdb-api-token"
+  },
+  "_comment_cronSchedule": "How often the bot checks for alerts to run (every minute by default)",
+  "cronSchedule": "* * * * *",
+  "_comment_timezone": "Timezone for daily alerts (IANA timezone format, e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
+  "timezone": "America/New_York",
+  "_comment_dailyAlertHour": "Hour (0-23) when daily alerts should fire in the configured timezone (9 = 9 AM)",
+  "dailyAlertHour": 9
+}
